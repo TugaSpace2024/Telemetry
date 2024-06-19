@@ -1,0 +1,101 @@
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <iomanip>
+
+// Estrutura para os dados de telemetria
+struct Telemetria {
+    uint32_t id_dispositivo; // 4 bytes
+    uint64_t timestamp;      // 8 bytes
+    uint32_t numero_sequencia; // 4 bytes
+    uint16_t tipo_dados;     // 2 bytes
+    float temperatura;       // 4 bytes
+    float pressao;           // 4 bytes
+    float velocidade;        // 4 bytes
+    uint16_t checksum;       // 2 bytes
+};
+
+// Função para calcular checksum (exemplo simples)
+uint16_t calcular_checksum(const uint8_t* dados, size_t tamanho) {
+    uint16_t checksum = 0;
+    for (size_t i = 0; i < tamanho; ++i) {
+        checksum += dados[i];
+    }
+    return checksum;
+}
+
+// Função para simular a criação de um pacote de telemetria
+std::vector<uint8_t> criar_pacote_telemetria(const Telemetria& telemetria) {
+    std::vector<uint8_t> pacote(34); // 34 bytes no total
+
+    // Copiando os dados para o pacote
+    std::memcpy(pacote.data(), &telemetria.id_dispositivo, sizeof(telemetria.id_dispositivo));
+    std::memcpy(pacote.data() + 4, &telemetria.timestamp, sizeof(telemetria.timestamp));
+    std::memcpy(pacote.data() + 12, &telemetria.numero_sequencia, sizeof(telemetria.numero_sequencia));
+    std::memcpy(pacote.data() + 16, &telemetria.tipo_dados, sizeof(telemetria.tipo_dados));
+    std::memcpy(pacote.data() + 18, &telemetria.temperatura, sizeof(telemetria.temperatura));
+    std::memcpy(pacote.data() + 22, &telemetria.pressao, sizeof(telemetria.pressao));
+    std::memcpy(pacote.data() + 26, &telemetria.velocidade, sizeof(telemetria.velocidade));
+
+    // Calculando e adicionando o checksum ao pacote
+    uint16_t checksum = calcular_checksum(pacote.data(), 32); // Excluindo os últimos 2 bytes
+    std::memcpy(pacote.data() + 32, &checksum, sizeof(checksum));
+
+    return pacote;
+}
+
+// Função para decodificar um pacote de telemetria
+Telemetria decodificar_pacote_telemetria(const std::vector<uint8_t>& pacote) {
+    Telemetria telemetria;
+
+    // Copiando os dados do pacote para a estrutura
+    std::memcpy(&telemetria.id_dispositivo, pacote.data(), sizeof(telemetria.id_dispositivo));
+    std::memcpy(&telemetria.timestamp, pacote.data() + 4, sizeof(telemetria.timestamp));
+    std::memcpy(&telemetria.numero_sequencia, pacote.data() + 12, sizeof(telemetria.numero_sequencia));
+    std::memcpy(&telemetria.tipo_dados, pacote.data() + 16, sizeof(telemetria.tipo_dados));
+    std::memcpy(&telemetria.temperatura, pacote.data() + 18, sizeof(telemetria.temperatura));
+    std::memcpy(&telemetria.pressao, pacote.data() + 22, sizeof(telemetria.pressao));
+    std::memcpy(&telemetria.velocidade, pacote.data() + 26, sizeof(telemetria.velocidade));
+    std::memcpy(&telemetria.checksum, pacote.data() + 32, sizeof(telemetria.checksum));
+
+    return telemetria;
+}
+
+int main() {
+    // Criando um exemplo de telemetria
+    Telemetria telemetria = {
+        1234,               // id_dispositivo
+        1651234567890,      // timestamp
+        1,                  // numero_sequencia
+        0x0001,             // tipo_dados (temperatura)
+        25.5,               // temperatura
+        1013.25,            // pressao
+        5.5,                // velocidade
+        0                   // checksum (será calculado)
+    };
+
+    // Criando o pacote de telemetria
+    std::vector<uint8_t> pacote = criar_pacote_telemetria(telemetria);
+
+    // Exibindo o pacote em hexadecimal
+    std::cout << "Pacote de telemetria: ";
+    for (uint8_t byte : pacote) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
+    }
+    std::cout << std::endl;
+
+    // Decodificando o pacote de telemetria
+    Telemetria telemetria_decodificada = decodificar_pacote_telemetria(pacote);
+
+    // Exibindo os dados decodificados
+    std::cout << "id_dispositivo: " << telemetria_decodificada.id_dispositivo << std::endl;
+    std::cout << "timestamp: " << telemetria_decodificada.timestamp << std::endl;
+    std::cout << "numero_sequencia: " << telemetria_decodificada.numero_sequencia << std::endl;
+    std::cout << "tipo_dados: " << telemetria_decodificada.tipo_dados << std::endl;
+    std::cout << "temperatura: " << telemetria_decodificada.temperatura << std::endl;
+    std::cout << "pressao: " << telemetria_decodificada.pressao << std::endl;
+    std::cout << "velocidade: " << telemetria_decodificada.velocidade << std::endl;
+    std::cout << "checksum: " << telemetria_decodificada.checksum << std::endl;
+
+    return 0;
+}
